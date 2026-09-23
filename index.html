@@ -1183,7 +1183,7 @@ function loadSample(name) {
   Promise.all(VIEWS.map(k => new Promise((ok, fail) => {
     const img = new Image();
     img.onload = () => ok([k, img]); img.onerror = () => fail(k);
-    img.src = `assets/${k}.jpg`;
+    img.src = `assets/${k}.jpg?v=2`;
   }))).then(list => { list.forEach(([k, img]) => setViewImage(k, img, `${k}.jpg`, true)); done(); })
     .catch(k => status(`無法載入範例圖片 assets/${k}.jpg。`, true));
 }

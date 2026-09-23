@@ -186,9 +186,9 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
     <section>
       <h2>生成方式</h2>
       <div class="seg" role="radiogroup" aria-label="生成方式">
-        <input type="radio" name="mode" id="mode-hull" value="hull" checked>
+        <input type="radio" name="mode" id="mode-hull" value="hull">
         <label for="mode-hull">輪廓雕刻<small>依三視圖外形切出實體</small></label>
-        <input type="radio" name="mode" id="mode-box" value="box">
+        <input type="radio" name="mode" id="mode-box" value="box" checked>
         <label for="mode-box">紙箱模擬<small>微圓角邊緣、六面貼圖</small></label>
       </div>
       <div class="field" id="f-radius" hidden>
@@ -203,9 +203,9 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
         <div class="seg seg3 plain" role="radiogroup" aria-label="封箱膠帶">
           <input type="radio" name="tape" id="tape-none" value="0">
           <label for="tape-none">無膠帶</label>
-          <input type="radio" name="tape" id="tape-kraft" value="1" checked>
+          <input type="radio" name="tape" id="tape-kraft" value="1">
           <label for="tape-kraft">牛皮膠帶</label>
-          <input type="radio" name="tape" id="tape-clear" value="2">
+          <input type="radio" name="tape" id="tape-clear" value="2" checked>
           <label for="tape-clear">透明膠帶</label>
         </div>
       </div>
@@ -289,6 +289,7 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
     <section>
       <h2>範例</h2>
       <div class="samples">
+        <button class="btn" type="button" data-sample="chili">鵝油辣椒紙箱</button>
         <button class="btn" type="button" data-sample="birdhouse">木製鳥屋</button>
         <button class="btn" type="button" data-sample="speaker">圓柱音箱</button>
         <button class="btn" type="button" data-sample="clear">清空</button>
@@ -325,8 +326,8 @@ const $ = s => document.querySelector(s);
 const VIEWS = ['top', 'front', 'left'];
 const NAMES = { top: '上視圖', front: '前視圖', left: '左視圖' };
 const state = {
-  w: 160, d: 140, h: 220, mode: 'hull', res: 72, tol: 40,
-  smooth: true, autocrop: true, mirror: true, radius: 3, seam: true, flute: true, tape: 1,
+  w: 338, d: 173, h: 114, mode: 'box', res: 72, tol: 40,
+  smooth: true, autocrop: true, mirror: true, radius: 3, seam: true, flute: true, tape: 2,
   light: 'studio', az: 35, el: 52, exposure: 1, gloss: 30, shadows: true,
   bg: 'theme', bgColor: '#F3F1ED', bgImage: null, bgImageTone: 'light', showGrid: true, showDims: true,
   views: { top: null, front: null, left: null }
@@ -609,7 +610,7 @@ function buildDims() {
 }
 
 /* ---------- image processing ---------- */
-function setViewImage(key, img, name) {
+function setViewImage(key, img, name, raw) {
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
   const s = Math.min(1, 1400 / Math.max(iw, ih));
   const c = document.createElement('canvas');
@@ -617,7 +618,7 @@ function setViewImage(key, img, name) {
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   const old = state.views[key];
   if (old && old.texture) old.texture.dispose();
-  state.views[key] = { src: c, name: name || '' };
+  state.views[key] = { src: c, name: name || '', raw: !!raw };
   processView(key);
   refreshTextures(); drawCell(key); scheduleBuild();
 }
@@ -625,6 +626,16 @@ function setViewImage(key, img, name) {
 function processView(key) {
   const v = state.views[key]; if (!v) return;
   const src = v.src, MW = 420;
+  if (v.raw) {   // print artwork that already fills the frame: use as-is
+    const tex = new THREE.CanvasTexture(src);
+    tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    if (v.texture) v.texture.dispose();
+    const ovc = document.createElement('canvas'); ovc.width = ovc.height = 1;
+    Object.assign(v, { crop: src, overlay: ovc, texture: tex, aspect: src.width / src.height, method: 'raw', empty: true, mask: null });
+    return;
+  }
   const sc = Math.min(1, MW / Math.max(src.width, src.height));
   const mw = Math.max(1, Math.round(src.width * sc)), mh = Math.max(1, Math.round(src.height * sc));
   const c = document.createElement('canvas'); c.width = mw; c.height = mh;
@@ -646,6 +657,7 @@ function processView(key) {
     const med = ch => { const a = border.map(i => px[i * 4 + ch]).sort((p, q) => p - q); return a[a.length >> 1]; };
     const br = med(0), bg = med(1), bb = med(2), t2 = state.tol * state.tol;
     const near = i => { const r = px[i * 4] - br, gg = px[i * 4 + 1] - bg, b = px[i * 4 + 2] - bb; return r * r + gg * gg + b * b <= t2; };
+    if (border.filter(near).length < border.length * 0.6) border.length = 0;   // busy edges: nothing to remove
     const stack = new Int32Array(N); let sp = 0;
     for (const i of border) if (fg[i] && near(i)) { fg[i] = 0; stack[sp++] = i; }
     while (sp) {
@@ -1097,8 +1109,11 @@ const rect = (g, x, y, w, h, fill) => { g.fillStyle = fill; g.fillRect(x, y, w, 
 const disc = (g, x, y, r, fill) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fillStyle = fill; g.fill(); };
 
 const SAMPLES = {
+  chili: {
+    dims: [338, 173, 114], label: '鵝油辣椒紙箱', mode: 'box', files: true
+  },
   birdhouse: {
-    dims: [160, 140, 220], label: '木製鳥屋',
+    dims: [160, 140, 220], label: '木製鳥屋', mode: 'hull',
     front: () => drawing(160, 220, g => {
       rect(g, 0, 0, 160, 150, '#D7A46A');
       poly(g, [[0, 150], [80, 220], [160, 150]], '#D7A46A');
@@ -1131,7 +1146,7 @@ const SAMPLES = {
     })
   },
   speaker: {
-    dims: [110, 110, 170], label: '圓柱音箱',
+    dims: [110, 110, 170], label: '圓柱音箱', mode: 'hull',
     front: () => drawing(110, 170, speakerSide),
     left: () => drawing(110, 170, speakerSide),
     top: () => drawing(110, 110, g => {
@@ -1161,14 +1176,23 @@ function loadSample(name) {
   const s = SAMPLES[name];
   [state.w, state.d, state.h] = s.dims;
   syncDims();
-  VIEWS.forEach(k => setViewImage(k, s[k](), `sample-${k}`));
-  build(); setView('iso');
-  status(`範例：${s.label}（${s.dims[0]} × ${s.dims[1]} × ${s.dims[2]} mm）`);
+  const m = $('#mode-' + (s.mode || 'hull'));
+  if (!m.checked) { m.checked = true; m.dispatchEvent(new Event('change')); }
+  const done = () => { build(); setView('iso'); status(`範例：${s.label}（${s.dims[0]} × ${s.dims[1]} × ${s.dims[2]} mm）`); };
+  if (!s.files) { VIEWS.forEach(k => setViewImage(k, s[k](), `sample-${k}`)); done(); return; }
+  Promise.all(VIEWS.map(k => new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => ok([k, img]); img.onerror = () => fail(k);
+    img.src = `assets/${k}.jpg`;
+  }))).then(list => { list.forEach(([k, img]) => setViewImage(k, img, `${k}.jpg`, true)); done(); })
+    .catch(k => status(`無法載入範例圖片 assets/${k}.jpg。`, true));
 }
 document.querySelectorAll('[data-sample]').forEach(b => b.addEventListener('click', () => loadSample(b.dataset.sample)));
 
 /* ---------- boot ---------- */
-resize(); applyBackground(); loadSample('birdhouse');
+resize(); applyBackground();
+document.querySelector('input[name=mode]:checked').dispatchEvent(new Event('change'));
+loadSample('chili');
 })();
 </script>
 </body>

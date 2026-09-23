@@ -4,6 +4,7 @@
 
 - **輪廓雕刻**：自動去背，以三視圖輪廓切出實體並投影貼圖
 - **紙箱模擬**：微圓角紙箱，可加封箱摺線、封箱膠帶、瓦楞紋理與斷面
-- 自然打光（棚拍柔光／自然日光／平光）、單色或自訂圖片背景
+- 商品攝影棚打光（程序生成的柔光箱環境光）、柔和接觸陰影、無縫背景紙
+- **高品質渲染**：GPU 光線追蹤（three-gpu-pathtracer），逐步算出接近商品照的光影，可下載 PNG
 
-單一 HTML 檔，使用 three.js r128（CDN 載入），無需建置。直接開啟 `index.html` 或透過 GitHub Pages 瀏覽。
+單一 HTML 檔，使用 three.js r181 與 three-gpu-pathtracer（皆由 CDN 以 ES module 載入），無需建置。透過 GitHub Pages 瀏覽；本機預覽請在資料夾內執行 `python3 -m http.server` 後開啟 http://localhost:8000（直接雙擊檔案無法載入模組與範例圖）。

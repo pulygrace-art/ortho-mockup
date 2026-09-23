@@ -118,7 +118,8 @@ h2 span{font-family:var(--sans);letter-spacing:.02em;text-transform:none;font-we
 main{--s-ink:var(--ink);--s-muted:var(--muted);--s-chip:var(--stage);--s-dim:var(--dim)}
 main[data-tone="light"]{--s-ink:#172025;--s-muted:#48555A;--s-chip:rgba(255,255,255,.8);--s-dim:#B83A22}
 main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,.72);--s-dim:#FF8C70}
-#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#gl,#under{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#under{pointer-events:none}
 .labels{position:absolute;inset:0;pointer-events:none}
 .dimlabel{position:absolute;left:0;top:0;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--s-dim);background:var(--s-chip);padding:1px 5px;border-radius:2px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .hud{position:absolute;left:16px;top:14px;font-family:var(--mono);font-size:11.5px;color:var(--s-muted);line-height:1.6;pointer-events:none;font-variant-numeric:tabular-nums}
@@ -136,6 +137,19 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
   aside{border-right:0;border-top:1px solid var(--line);padding-inline:16px}
   .hud{top:auto;bottom:34px;right:16px}
 }
+
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 45%,rgba(0,0,0,.32) 100%)}
+.views .primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+.views .primary:hover{color:var(--accent-ink);filter:brightness(1.08)}
+.views .primary[aria-pressed="true"]{filter:brightness(.9)}
+.views button:disabled{opacity:.6;cursor:progress}
+.hqbar{position:absolute;right:16px;bottom:12px;width:min(320px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.hqtext{display:flex;justify-content:space-between;gap:8px;font-variant-numeric:tabular-nums}
+.hqtext span{font-family:var(--mono);color:var(--muted);font-size:12px}
+.hqtrack{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.hqfill{height:100%;width:0;background:var(--accent);transition:width .2s}
+.hqbtns{display:flex;justify-content:flex-end;gap:6px}
+.hqbtns .btn{padding:3px 10px;font-size:12px}
 </style>
 
 </head>
@@ -144,7 +158,7 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
   <aside>
     <div class="brand">
       <h1>三視圖 3D 打樣</h1>
-      <p>放入上視、前視、左視三張圖並填入尺寸，右側即時產生 3D 示意模型。</p>
+      <p>放入上視、前視、左視三張圖並填入尺寸，右側即時產生 3D 示意模型；按「高品質渲染」可算出接近商品照的光影。</p>
     </div>
 
     <section>
@@ -170,7 +184,7 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
           <span class="tag">FRONT · W×H</span><button class="rm" type="button" aria-label="移除前視圖">移除</button>
         </div>
       </div>
-      <p class="hint">紅色區域為自動去除的背景。圖片以純色或透明背景最佳；也可以把三張圖一次拖到右側畫面，檔名含 top／front／left（或 上／前／左）即自動對位。</p>
+      <p class="hint">紅色區域為自動去除的背景；滿版的印刷圖會整張使用。也可以把三張圖一次拖到右側畫面，檔名含 top／front／left（或 上／前／左）即自動對位。</p>
     </section>
 
     <section>
@@ -199,6 +213,7 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
         <div class="checks">
           <label for="chk-seam"><input type="checkbox" id="chk-seam"><span>頂部封箱摺線<small>上下兩片主摺頁在中線對接的縫</small></span></label>
           <label for="chk-flute"><input type="checkbox" id="chk-flute"><span>瓦楞紙紋理<small>表面楞紋，封箱縫內可見波浪斷面</small></span></label>
+          <label for="chk-bulge"><input type="checkbox" id="chk-bulge"><span>箱面微鼓<small>裝滿內容物時箱面自然外凸</small></span></label>
         </div>
         <div class="seg seg3 plain" role="radiogroup" aria-label="封箱膠帶">
           <input type="radio" name="tape" id="tape-none" value="0">
@@ -218,9 +233,9 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
         <input type="range" id="tol" min="4" max="160" step="2">
       </div>
       <div class="checks">
-        <label for="chk-smooth"><input type="checkbox" id="chk-smooth"><span>平滑表面<small>減少雕刻鋸齒</small></span></label>
+        <label for="chk-smooth" id="l-smooth"><input type="checkbox" id="chk-smooth"><span>平滑表面<small>減少雕刻鋸齒</small></span></label>
         <label for="chk-crop"><input type="checkbox" id="chk-crop"><span>自動裁切至物件外框<small>圖片留白不計入尺寸</small></span></label>
-        <label for="chk-mirror"><input type="checkbox" id="chk-mirror"><span>背面、右側、底面沿用鏡像貼圖<small>關閉則顯示素色</small></span></label>
+        <label for="chk-mirror"><input type="checkbox" id="chk-mirror"><span>背面、右側、底面沿用對應圖案<small>關閉則顯示素色</small></span></label>
       </div>
     </section>
 
@@ -228,51 +243,51 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
       <h2>打光</h2>
       <div class="seg seg3" role="radiogroup" aria-label="打光預設">
         <input type="radio" name="light" id="light-studio" value="studio" checked>
-        <label for="light-studio">棚拍柔光<small>柔和陰影</small></label>
+        <label for="light-studio">商品攝影棚<small>頂部柔光箱</small></label>
         <input type="radio" name="light" id="light-daylight" value="daylight">
-        <label for="light-daylight">自然日光<small>清楚投影</small></label>
+        <label for="light-daylight">自然日光<small>天空光＋陽光</small></label>
         <input type="radio" name="light" id="light-flat" value="flat">
-        <label for="light-flat">平光<small>看清貼圖</small></label>
+        <label for="light-flat">平光<small>均勻、看清貼圖</small></label>
       </div>
       <div class="field">
-        <label for="az">光源方位 <output id="az-out"></output></label>
-        <input type="range" id="az" min="0" max="360" step="1">
+        <label for="az">主光方位 <output id="az-out"></output></label>
+        <input type="range" id="az" min="-180" max="180" step="1">
       </div>
       <div class="field">
-        <label for="el">光源高度 <output id="el-out"></output></label>
+        <label for="el">主光高度 <output id="el-out"></output></label>
         <input type="range" id="el" min="8" max="88" step="1">
       </div>
       <div class="field">
         <label for="exp">曝光 <output id="exp-out"></output></label>
-        <input type="range" id="exp" min="0.4" max="2" step="0.05">
+        <input type="range" id="exp" min="0.4" max="2.4" step="0.05">
       </div>
       <div class="field">
         <label for="gloss">表面光澤 <output id="gloss-out"></output></label>
         <input type="range" id="gloss" min="0" max="100" step="1">
       </div>
       <div class="checks">
-        <label for="chk-shadow"><input type="checkbox" id="chk-shadow"><span>投射陰影<small>模型落在地面與自身的陰影</small></span></label>
+        <label for="chk-shadow"><input type="checkbox" id="chk-shadow"><span>地面陰影<small>貼地的柔和接觸陰影與投影</small></span></label>
       </div>
     </section>
 
     <section>
       <h2>背景</h2>
       <div class="seg seg3 plain" role="radiogroup" aria-label="背景">
-        <input type="radio" name="bg" id="bg-theme" value="theme" checked>
-        <label for="bg-theme">跟隨主題</label>
-        <input type="radio" name="bg" id="bg-color" value="color">
-        <label for="bg-color">單色</label>
+        <input type="radio" name="bg" id="bg-studio" value="studio" checked>
+        <label for="bg-studio">單色攝影棚</label>
         <input type="radio" name="bg" id="bg-image" value="image">
         <label for="bg-image">圖片</label>
+        <input type="radio" name="bg" id="bg-theme" value="theme">
+        <label for="bg-theme">跟隨主題</label>
       </div>
-      <div class="bgrow" id="bg-color-row" hidden>
+      <div class="bgrow" id="bg-color-row">
         <input type="color" id="bg-picker" aria-label="自訂背景色">
+        <button class="sw" type="button" data-color="#B9BBBC" style="background:#B9BBBC" aria-label="攝影棚灰"></button>
         <button class="sw" type="button" data-color="#F3F1ED" style="background:#F3F1ED" aria-label="暖白"></button>
-        <button class="sw" type="button" data-color="#D8DEE2" style="background:#D8DEE2" aria-label="冷灰"></button>
         <button class="sw" type="button" data-color="#E6D6BF" style="background:#E6D6BF" aria-label="沙色"></button>
         <button class="sw" type="button" data-color="#C3D4C9" style="background:#C3D4C9" aria-label="鼠尾草綠"></button>
-        <button class="sw" type="button" data-color="#2A2F33" style="background:#2A2F33" aria-label="炭灰"></button>
-        <button class="sw" type="button" data-color="#0E1012" style="background:#0E1012" aria-label="黑"></button>
+        <button class="sw" type="button" data-color="#3A3F44" style="background:#3A3F44" aria-label="炭灰"></button>
+        <button class="sw" type="button" data-color="#141618" style="background:#141618" aria-label="黑"></button>
       </div>
       <div class="bgrow" id="bg-image-row" hidden>
         <span class="bgthumb" id="bg-thumb"></span>
@@ -281,6 +296,7 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
         <span class="bgname" id="bg-name">尚未選擇圖片</span>
       </div>
       <div class="checks">
+        <label for="chk-vig" id="l-vig"><input type="checkbox" id="chk-vig"><span>暗角<small>四周微暗，聚焦商品</small></span></label>
         <label for="chk-grid"><input type="checkbox" id="chk-grid"><span>顯示地面格線</span></label>
         <label for="chk-dims"><input type="checkbox" id="chk-dims"><span>顯示尺寸標註</span></label>
       </div>
@@ -299,7 +315,9 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
   </aside>
 
   <main id="stage">
+    <canvas id="under" hidden></canvas>
     <canvas id="gl" aria-label="3D 示意模型，可拖曳旋轉"></canvas>
+    <div class="vignette" id="vignette"></div>
     <div class="labels" id="labels">
       <span class="dimlabel" id="lab-w"></span>
       <span class="dimlabel" id="lab-d"></span>
@@ -307,217 +325,241 @@ main[data-tone="dark"]{--s-ink:#EEF2F1;--s-muted:#B7C1C4;--s-chip:rgba(12,16,18,
     </div>
     <div class="hud" id="hud"></div>
     <div class="views" role="group" aria-label="視角">
+      <button type="button" data-cam="product">商品照</button>
       <button type="button" data-cam="iso">等角</button>
       <button type="button" data-cam="front">前</button>
       <button type="button" data-cam="top">上</button>
       <button type="button" data-cam="left">左</button>
       <button type="button" id="spin" aria-pressed="false">自動旋轉</button>
+      <button type="button" id="hq" class="primary">高品質渲染</button>
     </div>
-    <div class="foot">拖曳旋轉 · 滾輪縮放 · 右鍵平移</div>
+    <div class="hqbar" id="hqbar" hidden>
+      <div class="hqtext"><b id="hq-title">高品質渲染中</b><span id="hq-count"></span></div>
+      <div class="hqtrack"><div class="hqfill" id="hq-fill"></div></div>
+      <div class="hqbtns">
+        <button type="button" class="btn" id="hq-save" hidden>下載 PNG</button>
+        <button type="button" class="btn" id="hq-stop">結束</button>
+      </div>
+    </div>
+    <div class="foot" id="foot">拖曳旋轉 · 滾輪縮放 · 右鍵平移</div>
     <div class="drop-all" id="drop-all" hidden>放開以載入視圖</div>
   </main>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script>
-(() => {
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.181.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.1/examples/jsm/",
+    "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.181.1/examples/jsm/",
+    "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.5/src/index.js",
+    "three-gpu-pathtracer": "https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.24/src/index.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
+import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
+
 const $ = s => document.querySelector(s);
 const VIEWS = ['top', 'front', 'left'];
 const NAMES = { top: '上視圖', front: '前視圖', left: '左視圖' };
+const KRAFT = '#B5844F', NEUTRAL = '#B8C1BE';
 const state = {
   w: 338, d: 173, h: 114, mode: 'box', res: 72, tol: 40,
-  smooth: true, autocrop: true, mirror: true, radius: 3, seam: true, flute: true, tape: 2,
-  light: 'studio', az: 35, el: 52, exposure: 1, gloss: 30, shadows: true,
-  bg: 'theme', bgColor: '#F3F1ED', bgImage: null, bgImageTone: 'light', showGrid: true, showDims: true,
+  smooth: true, autocrop: true, mirror: true, radius: 3, seam: true, flute: true, bulge: true, tape: 2,
+  light: 'studio', az: -40, el: 58, exposure: 1, gloss: 35, shadows: true,
+  bg: 'studio', bgColor: '#B9BBBC', bgImage: null, bgImageTone: 'light', vignette: true, showGrid: false, showDims: true,
   views: { top: null, front: null, left: null }
 };
 const LIGHTS = {
-  studio:   { name: '棚拍柔光', az: 35, el: 52, key: 2.1, keyColor: '#FFF4E8', hemi: 0.5, sky: '#FFFFFF', ground: '#9A9A94', fill: 0.45, env: 0.85, radius: 9, shadow: 0.34 },
-  daylight: { name: '自然日光', az: 58, el: 38, key: 3.0, keyColor: '#FFEFD2', hemi: 0.55, sky: '#CFE2FF', ground: '#A58D6F', fill: 0.12, env: 0.45, radius: 1.5, shadow: 0.4 },
-  flat:     { name: '平光',     az: 35, el: 60, key: 0,   keyColor: '#FFFFFF', hemi: 1.15, sky: '#FFFFFF', ground: '#FFFFFF', fill: 0,    env: 0.55, radius: 1, shadow: 0 }
+  studio:   { name: '商品攝影棚', az: -40, el: 58, contact: 0.85, soft: 22 },
+  daylight: { name: '自然日光',   az: 55,  el: 42, contact: 0.55, soft: 10 },
+  flat:     { name: '平光',       az: -40, el: 58, contact: 0.7,  soft: 30 }
 };
+const status = (msg, err) => { const s = $('#status'); s.textContent = msg; s.classList.toggle('err', !!err); };
 
-/* ---------- three.js scene ---------- */
+/* ---------- renderer / scene ---------- */
 const stage = $('#stage'), canvas = $('#gl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x000000, 0);
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.NeutralToneMapping;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
-const lin = hex => new THREE.Color(hex).convertSRGBToLinear();
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(32, 1, 1, 500000);
-const controls = new THREE.OrbitControls(camera, canvas);
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();          // everything drawn in the live view
+const overlay = new THREE.Scene();        // dimension lines, drawn on top of either renderer
+const camera = new THREE.PerspectiveCamera(22, 1, 1, 500000);
+camera.layers.enable(2);
+const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.09;
 controls.autoRotateSpeed = 1.6;
 
-const blank = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
-blank.needsUpdate = true;
-const uniforms = {
-  tF: { value: blank }, tT: { value: blank }, tL: { value: blank },
-  has: { value: new THREE.Vector3() },
-  size: { value: new THREE.Vector3(1, 1, 1) },
-  base: { value: new THREE.Color('#b8c1be') },
-  mirror: { value: 1 },
-  // carton details (box mode only)
-  cOn: { value: 0 }, cSeam: { value: 1 }, cTape: { value: 1 }, cFlute: { value: 1 }, cSeamX: { value: 1 },
-  cGap: { value: 4 }, cTapeW: { value: 48 }, cDrop: { value: 60 }, cPitch: { value: 8 },
-  cHalf: { value: new THREE.Vector3(1, 1, 1) }
-};
-// Physically based material; the three views are projected on it (triplanar) as its base colour.
-const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0, side: THREE.DoubleSide });
-material.onBeforeCompile = sh => {
-  Object.assign(sh.uniforms, { triF: uniforms.tF, triT: uniforms.tT, triL: uniforms.tL,
-    triHas: uniforms.has, triSize: uniforms.size, triBase: uniforms.base, triMirror: uniforms.mirror });
-  for (const k of ['cOn', 'cSeam', 'cTape', 'cFlute', 'cSeamX', 'cGap', 'cTapeW', 'cDrop', 'cPitch', 'cHalf']) sh.uniforms[k] = uniforms[k];
-  sh.vertexShader = 'varying vec3 vObjPos;\nvarying vec3 vObjN;\n' + sh.vertexShader.replace(
-    '#include <begin_vertex>', '#include <begin_vertex>\n  vObjPos = position; vObjN = objectNormal;');
-  sh.fragmentShader = `
-    uniform sampler2D triF, triT, triL; uniform vec3 triHas, triSize, triBase; uniform float triMirror;
-    varying vec3 vObjPos; varying vec3 vObjN;
-    vec3 toLin(vec3 c){ return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c)); }
-    vec3 triSamp(sampler2D t, vec2 uv, float h, bool rev){
-      if (h < 0.5 || (rev && triMirror < 0.5)) return triBase;
-      return toLin(texture2D(t, clamp(uv, 0.001, 0.999)).rgb);
-    }
-    vec3 triColor(){
-      vec3 n = normalize(vObjN); if (!gl_FrontFacing) n = -n;
-      vec3 p = vObjPos / triSize + 0.5;        // 0..1 : x=W(left→right) y=H(bottom→top) z=D(back→front)
-      vec2 uf = vec2(p.x, p.y);  bool rf = n.z < 0.0; if (rf) uf.x = 1.0 - uf.x;
-      vec2 ut = vec2(p.x, 1.0 - p.z); bool rt = n.y < 0.0;
-      vec2 ul = vec2(p.z, p.y);  bool rl = n.x > 0.0; if (rl) ul.x = 1.0 - ul.x;
-      vec3 w = pow(abs(n), vec3(4.0)); w /= (w.x + w.y + w.z);
-      return triSamp(triF, uf, triHas.x, rf) * w.z + triSamp(triT, ut, triHas.y, rt) * w.y + triSamp(triL, ul, triHas.z, rl) * w.x;
-    }
-    uniform float cOn, cSeam, cTape, cFlute, cSeamX, cGap, cTapeW, cDrop, cPitch; uniform vec3 cHalf;
-    const float TAU = 6.2831853;
-    vec3 cN(){ vec3 n = normalize(vObjN); return gl_FrontFacing ? n : -n; }
-    float cAcross(vec3 p){ return cSeamX > 0.5 ? p.z : p.x; }   // across the seam
-    float cAlong(vec3 p){ return cSeamX > 0.5 ? p.x : p.z; }    // along the seam
-    float cTapeMask(vec3 p){
-      if (cOn < 0.5 || cTape < 0.5) return 0.0;
-      float band = 1.0 - smoothstep(cTapeW * 0.5 - 0.3, cTapeW * 0.5 + 0.3, abs(cAcross(p)));
-      return band * step(cHalf.y - cDrop, abs(p.y));   // over top/bottom, wrapping down the end faces
-    }
-    // flutes run vertically in the walls and across the seam on the flaps
-    float cFluteU(vec3 n, vec3 p, out vec3 t){
-      if (abs(n.y) > 0.7) { t = cSeamX > 0.5 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0); return cAlong(p); }
-      if (abs(n.z) > abs(n.x)) { t = vec3(1.0, 0.0, 0.0); return p.x; }
-      t = vec3(0.0, 0.0, 1.0); return p.z;
-    }
-    vec3 cartonColor(vec3 col){
-      if (cOn < 0.5) return col;
-      vec3 p = vObjPos, n = cN(), t;
-      if (cFlute > 0.5) col *= 1.0 - 0.035 * (0.5 + 0.5 * cos(TAU * cFluteU(n, p, t) / cPitch));
-      if (cSeam > 0.5 && abs(n.y) > 0.5) {
-        float c = cAcross(p), g = cGap * 0.5;
-        if (abs(c) < g) {
-          // looking into the gap: the flap's cut edge = liner / fluting / liner
-          float d = (c + g) / (2.0 * g);
-          vec3 hollow = vec3(0.05, 0.035, 0.022), inner = hollow;
-          if (cFlute > 0.5) {
-            float wave = 0.5 + 0.3 * sin(TAU * cAlong(p) / cPitch);
-            float liner = step(d, 0.14) + step(0.86, d);
-            float flute = 1.0 - smoothstep(0.05, 0.1, abs(d - wave));
-            inner = mix(hollow, vec3(0.34, 0.22, 0.11), clamp(liner + flute, 0.0, 1.0));
-          }
-          col = inner;
-        } else {
-          col *= mix(0.7, 1.0, smoothstep(g, g + 1.4, abs(c)));   // flap edges curl down slightly
-        }
-      }
-      float tm = cTapeMask(p);
-      if (tm > 0.0) {
-        bool kraft = cTape < 1.5;
-        vec3 taped = mix(col, kraft ? vec3(0.42, 0.2, 0.07) : vec3(1.0), kraft ? 0.8 : 0.1);
-        float side = smoothstep(cTapeW * 0.5 - 1.0, cTapeW * 0.5 - 0.3, abs(cAcross(p)));
-        float end = 1.0 - smoothstep(cHalf.y - cDrop + 0.2, cHalf.y - cDrop + 1.0, abs(p.y));
-        taped *= 1.0 - (kraft ? 0.2 : 0.3) * max(side, end);
-        col = mix(col, taped, tm);
-      }
-      return col;
-    }
-  ` + sh.fragmentShader
-    .replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb = cartonColor(diffuseColor.rgb * triColor());')
-    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = mix(roughnessFactor, cTape > 1.5 ? 0.16 : 0.32, cTapeMask(vObjPos));')
-    .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-  if (cOn > 0.5 && cFlute > 0.5) {
-    vec3 ft; float fu = cFluteU(cN(), vObjPos, ft);
-    float k = sin(TAU * fu / cPitch) * 0.07 * (1.0 - 0.7 * cTapeMask(vObjPos));
-    normal = normalize(normal + (viewMatrix * vec4(ft, 0.0)).xyz * k);
-  }`);
-};
-const mesh = new THREE.Mesh(new THREE.BufferGeometry(), material);
-mesh.castShadow = mesh.receiveShadow = true;
-scene.add(mesh);
-
-/* lights + a small soft-box room baked into an environment map for natural reflections */
-const hemi = new THREE.HemisphereLight(0xffffff, 0x999999, 0.5); scene.add(hemi);
-const key = new THREE.DirectionalLight(0xffffff, 2); scene.add(key, key.target);
-key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004;
-const fill = new THREE.DirectionalLight(0xDDE7FF, 0.4); scene.add(fill, fill.target);
-scene.environment = (() => {
-  const pm = new THREE.PMREMGenerator(renderer), room = new THREE.Scene();
-  room.add(new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshBasicMaterial({ color: 0x4d5152, side: THREE.BackSide })));
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.MeshBasicMaterial({ color: 0x2e2d2b }));
-  floor.rotation.x = -Math.PI / 2; floor.position.y = -4.9; room.add(floor);
-  const panel = (w, h, x, y, z, c, k) => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(k), side: THREE.DoubleSide }));
-    m.position.set(x, y, z); m.lookAt(0, 0, 0); room.add(m);
+/* ---------- procedural studio / sky light (equirect HDR shared by both renderers) ---------- */
+const rad = THREE.MathUtils.degToRad;
+const dirOf = (a, e) => new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e));
+function makeEnv(preset, azDeg, elDeg) {
+  const W = 512, H = 256, data = new Float32Array(W * H * 4);
+  const az = rad(azDeg), el = rad(elDeg), boxes = [];
+  const box = (a, e, sa, sb, L, col) => {
+    const c = dirOf(a, e), up = Math.abs(c.y) > 0.98 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    const r = new THREE.Vector3().crossVectors(up, c).normalize(), t = new THREE.Vector3().crossVectors(c, r).normalize();
+    boxes.push({ c, r, t, sa, sb, L, col: col || [1, 1, 1] });
   };
-  panel(6, 4, 0, 4.8, 0.5, 0xffffff, 3.2);
-  panel(3, 4, 4.8, 1, 2.5, 0xfff3e6, 2.2);
-  panel(3, 4, -4.8, 0.5, -1.5, 0xdfe9ff, 1.1);
-  panel(5, 2, 0, 1.5, -4.8, 0xffffff, 0.8);
-  const tex = pm.fromScene(room, 0.04).texture; pm.dispose(); return tex;
-})();
+  if (preset === 'studio') {
+    box(az, el, 0.62, 0.42, 7.0, [1, 0.97, 0.93]);                 // key soft box
+    box(az + rad(120), rad(16), 0.5, 0.36, 1.1, [0.94, 0.97, 1]);  // fill reflector
+    box(az + Math.PI, rad(30), 0.75, 0.22, 2.6);                  // rim strip
+    box(0, rad(89), 0.6, 0.6, 2.0);                               // overhead
+  }
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const d = new THREE.Vector3();
+  for (let j = 0; j < H; j++) {
+    const lat = ((j + 0.5) / H - 0.5) * Math.PI, y = Math.sin(lat), cl = Math.cos(lat);
+    for (let i = 0; i < W; i++) {
+      const phi = ((i + 0.5) / W - 0.5) * Math.PI * 2;
+      d.set(cl * Math.cos(phi), y, cl * Math.sin(phi));
+      let r, g, b;
+      if (preset === 'studio') { const v = y >= 0 ? 0.13 + 0.12 * y : 0.06; r = g = b = v; }
+      else if (preset === 'daylight') {
+        if (y >= 0) { const t = Math.pow(y, 0.45); r = 1.15 - 0.72 * t; g = 1.12 - 0.5 * t; b = 1.08 + 0.05 * t; }
+        else { r = 0.26; g = 0.23; b = 0.19; }
+      } else { const v = y > -0.1 ? 0.95 : 0.5; r = g = b = v; }
+      for (const B of boxes) {
+        const dd = d.dot(B.c); if (dd <= 0) continue;
+        const a = Math.abs(d.dot(B.r) / dd), bb = Math.abs(d.dot(B.t) / dd);
+        const m = (1 - sm(B.sa * 0.8, B.sa, a)) * (1 - sm(B.sb * 0.8, B.sb, bb));
+        if (m > 0) { r += B.L * B.col[0] * m; g += B.L * B.col[1] * m; b += B.L * B.col[2] * m; }
+      }
+      const o = (j * W + i) * 4; data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = 1;
+    }
+  }
+  const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.FloatType);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false; tex.needsUpdate = true;
+  return tex;
+}
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0003; sun.shadow.radius = 3;
+scene.add(sun, sun.target);
 
-// soft contact shadow (ambient occlusion under the model)
-const shCanvas = document.createElement('canvas'); shCanvas.width = shCanvas.height = 128;
-{ const g = shCanvas.getContext('2d'); const gr = g.createRadialGradient(64, 64, 8, 64, 64, 64);
-  gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); }
-const shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(shCanvas), transparent: true, depthWrite: false, opacity: 0.3, toneMapped: false });
-const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), shadowMat);
-shadow.rotation.x = -Math.PI / 2; scene.add(shadow);
-// cast-shadow catcher: invisible floor that only shows the shadow, so it sits on any background
-const catcherMat = new THREE.ShadowMaterial({ opacity: 0.26 });
-const catcher = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), catcherMat);
-catcher.rotation.x = -Math.PI / 2; catcher.receiveShadow = true; scene.add(catcher);
+/* ---------- product materials (6 faces: +x −x +y −y +z −z) ---------- */
+const faceMats = [0, 1, 2, 3, 4, 5].map(() => new THREE.MeshPhysicalMaterial({ roughness: 0.6, clearcoat: 0.2, clearcoatRoughness: 0.4, side: THREE.DoubleSide }));
+const tapeMat = new THREE.MeshPhysicalMaterial({ side: THREE.DoubleSide });
+const product = new THREE.Group(); scene.add(product);
+// one mesh per face: the path tracer assigns a single material per mesh
+const faceMeshes = faceMats.map(m => new THREE.Mesh(new THREE.BufferGeometry(), m));
+const tapeMesh = new THREE.Mesh(new THREE.BufferGeometry(), tapeMat);
+for (const m of [...faceMeshes, tapeMesh]) { m.castShadow = true; m.receiveShadow = true; m.layers.enable(1); product.add(m); }
+// split a grouped geometry into one compact geometry per group (material index 0‥5)
+function splitGroups(geo) {
+  const out = [0, 1, 2, 3, 4, 5].map(() => new THREE.BufferGeometry());
+  const names = Object.keys(geo.attributes), index = geo.index ? geo.index.array : null;
+  for (const g of geo.groups) {
+    const map = new Map(), attrs = Object.fromEntries(names.map(n => [n, []])), idx = [];
+    for (let i = g.start; i < g.start + g.count; i++) {
+      const v = index ? index[i] : i;
+      let nv = map.get(v);
+      if (nv === undefined) {
+        nv = map.size; map.set(v, nv);
+        for (const n of names) { const A = geo.attributes[n]; for (let c = 0; c < A.itemSize; c++) attrs[n].push(A.array[v * A.itemSize + c]); }
+      }
+      idx.push(nv);
+    }
+    const G = out[g.materialIndex];
+    for (const n of names) G.setAttribute(n, new THREE.Float32BufferAttribute(attrs[n], geo.attributes[n].itemSize));
+    G.setIndex(idx);
+  }
+  geo.dispose();
+  return out;
+}
+
+/* ---------- seamless studio sweep (floor curving into a back wall) ---------- */
+const sweepMat = new THREE.MeshStandardMaterial({ color: state.bgColor, roughness: 0.95 });
+const sweep = new THREE.Mesh(new THREE.BufferGeometry(), sweepMat);
+sweep.receiveShadow = true; scene.add(sweep);
+function buildSweep() {
+  const { w, d, h } = state, R = Math.max(w, d, h);
+  const zb = -(d / 2 + 1.1 * R), rc = 1.6 * R, prof = [];
+  prof.push([6 * R, 0], [zb, 0]);
+  for (let i = 1; i <= 16; i++) { const t = i / 16 * Math.PI / 2; prof.push([zb - rc * Math.sin(t), rc - rc * Math.cos(t)]); }
+  prof.push([zb - rc, 6 * R]);
+  const X = 8 * R, pos = [], idx = [];
+  prof.forEach(([z, y]) => pos.push(-X, y, z, X, y, z));
+  for (let i = 0; i < prof.length - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  sweep.geometry.dispose(); sweep.geometry = g;
+}
+
+/* ---------- soft contact shadow (blurred depth from below, as in three.js' contact shadow example) ---------- */
+const contact = (() => {
+  const group = new THREE.Group(); scene.add(group);
+  const rt = new THREE.WebGLRenderTarget(1024, 1024), rtBlur = new THREE.WebGLRenderTarget(1024, 1024);
+  rt.texture.generateMipmaps = rtBlur.texture.generateMipmaps = false;
+  const planeGeo = new THREE.PlaneGeometry(1, 1).rotateX(Math.PI / 2);
+  const plane = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map: rt.texture, transparent: true, depthWrite: false }));
+  plane.scale.y = -1; plane.renderOrder = 1; plane.layers.set(2); group.add(plane);
+  const blurPlane = new THREE.Mesh(planeGeo); blurPlane.visible = false; group.add(blurPlane);
+  const cam = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 1);
+  cam.rotation.x = Math.PI / 2; cam.layers.set(1); group.add(cam);
+  const depthMat = new THREE.MeshDepthMaterial();
+  depthMat.userData.darkness = { value: 1.6 };
+  depthMat.onBeforeCompile = sh => {
+    sh.uniforms.darkness = depthMat.userData.darkness;
+    sh.fragmentShader = 'uniform float darkness;\n' + sh.fragmentShader.replace(
+      'gl_FragColor = vec4( vec3( 1.0 - fragCoordZ ), opacity );',
+      'gl_FragColor = vec4( vec3( 0.0 ), ( 1.0 - fragCoordZ ) * darkness );');
+  };
+  depthMat.depthTest = depthMat.depthWrite = false;
+  const hBlur = new THREE.ShaderMaterial(HorizontalBlurShader), vBlur = new THREE.ShaderMaterial(VerticalBlurShader);
+  hBlur.depthTest = vBlur.depthTest = false;
+  function blur(amount) {
+    blurPlane.visible = true;
+    blurPlane.material = hBlur; hBlur.uniforms.tDiffuse.value = rt.texture; hBlur.uniforms.h.value = amount / 256;
+    renderer.setRenderTarget(rtBlur); renderer.render(blurPlane, cam);
+    blurPlane.material = vBlur; vBlur.uniforms.tDiffuse.value = rtBlur.texture; vBlur.uniforms.v.value = amount / 256;
+    renderer.setRenderTarget(rt); renderer.render(blurPlane, cam);
+    blurPlane.visible = false;
+  }
+  function update() {
+    const { w, d, h } = state, S = Math.max(w, d) * 1.7 + h * 0.8, L = LIGHTS[state.light];
+    plane.scale.set(S, -1, S); blurPlane.scale.set(S, 1, S);
+    cam.left = cam.bottom = -S / 2; cam.right = cam.top = S / 2; cam.far = h * 0.6; cam.updateProjectionMatrix();
+    group.position.y = Math.max(w, d, h) * 0.0015;
+    plane.material.opacity = L.contact;
+    const bg = scene.background, clear = renderer.getClearAlpha(), cc = renderer.getClearColor(new THREE.Color());
+    scene.background = null; scene.overrideMaterial = depthMat;
+    renderer.setClearColor(0x000000, 0);
+    renderer.setRenderTarget(rt); renderer.clear(); renderer.render(scene, cam);
+    scene.overrideMaterial = null;
+    const amt = L.soft / S * 256;
+    blur(amt); blur(amt * 0.4);
+    renderer.setRenderTarget(null); renderer.setClearColor(cc, clear); scene.background = bg;
+  }
+  return { update, plane };
+})();
+// shadow catcher for the sun when there is no sweep (image / theme backgrounds)
+const catcher = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: 0.3 }));
+catcher.receiveShadow = true; catcher.layers.set(2); scene.add(catcher);
 
 let grid = null, gridStep = 10;
 const dimMat = new THREE.LineBasicMaterial({ color: '#c8442a', depthTest: false, transparent: true, toneMapped: false });
 const dimLines = new THREE.LineSegments(new THREE.BufferGeometry(), dimMat);
-dimLines.renderOrder = 10; scene.add(dimLines);
+overlay.add(dimLines);
 const anchors = { w: new THREE.Vector3(), d: new THREE.Vector3(), h: new THREE.Vector3() };
 
 function tok(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 function isDark() { return tok('--stage').toLowerCase() === '#0c1012'; }
-function hexLum(hex) {
-  const c = new THREE.Color(hex); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-}
+function hexLum(hex) { const c = new THREE.Color(hex); return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b; }
 function mixHex(a, b, t) { return '#' + new THREE.Color(a).lerp(new THREE.Color(b), t).getHexString(); }
 function tone() { return stage.dataset.tone || (isDark() ? 'dark' : 'light'); }
 
-function applyTheme() {
-  uniforms.base.value.copy(lin(state.mode === 'box' ? '#B5844F' : tok('--base')));  // kraft board for unprinted carton faces
-  dimMat.color.copy(lin(getComputedStyle(stage).getPropertyValue('--s-dim').trim() || tok('--dim')));
-  const dark = tone() === 'dark';
-  shadowMat.opacity = (dark ? 0.5 : 0.22) * (state.shadows && state.light !== 'flat' ? 0.7 : 1);
-  catcherMat.opacity = LIGHTS[state.light].shadow * (dark ? 1.5 : 1);
-  rebuildGrid();
-}
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
-new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
 function gridColors() {
-  if (state.bg === 'color') {
-    const to = hexLum(state.bgColor) > 0.35 ? '#000000' : '#ffffff';
-    return [mixHex(state.bgColor, to, 0.22), mixHex(state.bgColor, to, 0.1)];
-  }
+  if (state.bg === 'studio') { const to = hexLum(state.bgColor) > 0.3 ? '#000000' : '#ffffff'; return [mixHex(state.bgColor, to, 0.25), mixHex(state.bgColor, to, 0.12)]; }
   if (state.bg === 'image' && state.bgImage) return tone() === 'dark' ? ['#C9D0D2', '#7D878A'] : ['#50585B', '#8B9396'];
   return [tok('--grid1'), tok('--grid2')];
 }
@@ -528,74 +570,33 @@ function rebuildGrid() {
   const div = Math.max(2, Math.ceil(m * 3.2 / gridStep / 2) * 2);
   if (grid) { scene.remove(grid); grid.geometry.dispose(); grid.material.dispose(); }
   const [c1, c2] = gridColors();
-  grid = new THREE.GridHelper(div * gridStep, div, lin(c1), lin(c2));
-  grid.material.toneMapped = false;
-  if (state.bg === 'image') { grid.material.transparent = true; grid.material.opacity = 0.55; }
-  grid.position.y = -0.02 * gridStep;
-  grid.visible = state.showGrid;
+  grid = new THREE.GridHelper(div * gridStep, div, c1, c2);
+  grid.material.toneMapped = false; grid.material.transparent = true; grid.material.opacity = state.bg === 'theme' ? 1 : 0.5;
+  grid.position.y = m * 0.001; grid.visible = state.showGrid;
   scene.add(grid);
 }
-
-function updateLights() {
-  const L = LIGHTS[state.light], { w, d, h } = state, m = Math.max(w, d, h);
-  const az = THREE.MathUtils.degToRad(state.az), el = THREE.MathUtils.degToRad(state.el);
-  const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
-  const target = new THREE.Vector3(0, h / 2, 0);
-  key.position.copy(target).addScaledVector(dir, m * 4); key.target.position.copy(target);
-  key.intensity = L.key; key.color.copy(lin(L.keyColor));
-  fill.position.set(-dir.x, 0.35, -dir.z).normalize().multiplyScalar(m * 4).add(target); fill.target.position.copy(target);
-  fill.intensity = L.fill;
-  hemi.intensity = L.hemi; hemi.color.copy(lin(L.sky)); hemi.groundColor.copy(lin(L.ground));
-  material.envMapIntensity = L.env;
-  material.roughness = 1 - state.gloss / 100 * 0.85;
-  renderer.toneMappingExposure = state.exposure;
-  const cam = key.shadow.camera, r = 0.5 * Math.hypot(w, d, h) * 1.7;
-  cam.left = cam.bottom = -r; cam.right = cam.top = r; cam.near = m * 1.5; cam.far = m * 7;
-  cam.updateProjectionMatrix();
-  key.shadow.radius = L.radius;
-  key.shadow.normalBias = m * 0.004;
-  const on = state.shadows && L.key > 0;
-  key.castShadow = on; catcher.visible = on;
-  catcher.scale.set(m * 8, m * 8, 1);
-  applyTheme();
+function applyTheme() {
+  dimMat.color.set(getComputedStyle(stage).getPropertyValue('--s-dim').trim() || tok('--dim'));
+  rebuildGrid();
 }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-/* ---------- background ---------- */
-function applyBackground() {
-  const mode = state.bg;
-  $('#bg-color-row').hidden = mode !== 'color';
-  $('#bg-image-row').hidden = mode !== 'image';
-  if (mode === 'color') {
-    stage.style.background = state.bgColor;
-    stage.dataset.tone = hexLum(state.bgColor) > 0.35 ? 'light' : 'dark';
-  } else if (mode === 'image' && state.bgImage) {
-    stage.style.background = `center / cover no-repeat url("${state.bgImage}")`;
-    stage.dataset.tone = state.bgImageTone;
-  } else {
-    stage.style.background = ''; delete stage.dataset.tone;
-  }
-  $('#bg-picker').value = state.bgColor;
-  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color.toLowerCase() === state.bgColor.toLowerCase())));
-  applyTheme();
-}
-
+/* ---------- dimension lines ---------- */
 function buildDims() {
   const { w, d, h } = state, m = Math.max(w, d, h);
   const off = m * 0.16, ext = off * 1.15, tk = m * 0.022, s = [];
   const seg = (a, b, c, x, y, z) => s.push(a, b, c, x, y, z);
-  // W — along front bottom edge
   const zf = d / 2 + off;
   seg(-w / 2, 0, d / 2, -w / 2, 0, d / 2 + ext); seg(w / 2, 0, d / 2, w / 2, 0, d / 2 + ext);
   seg(-w / 2, 0, zf, w / 2, 0, zf);
   for (const x of [-w / 2, w / 2]) seg(x - tk, 0, zf + tk, x + tk, 0, zf - tk);
-  // D — along right bottom edge
-  const xr = w / 2 + off;
-  seg(w / 2, 0, -d / 2, w / 2 + ext, 0, -d / 2); seg(w / 2, 0, d / 2, w / 2 + ext, 0, d / 2);
+  const xr = -(w / 2 + off);   // depth on the left side, which the product view shows
+  seg(-w / 2, 0, -d / 2, -w / 2 - ext, 0, -d / 2); seg(-w / 2, 0, d / 2, -w / 2 - ext, 0, d / 2);
   seg(xr, 0, -d / 2, xr, 0, d / 2);
   for (const z of [-d / 2, d / 2]) seg(xr - tk, 0, z + tk, xr + tk, 0, z - tk);
-  // H — at front-left vertical edge
-  const xl = -w / 2 - off;
-  seg(-w / 2, 0, d / 2, -w / 2 - ext, 0, d / 2); seg(-w / 2, h, d / 2, -w / 2 - ext, h, d / 2);
+  const xl = w / 2 + off;      // height on the front-right edge
+  seg(w / 2, 0, d / 2, w / 2 + ext, 0, d / 2); seg(w / 2, h, d / 2, w / 2 + ext, h, d / 2);
   seg(xl, 0, d / 2, xl, h, d / 2);
   for (const y of [0, h]) seg(xl - tk, y - tk, d / 2, xl + tk, y + tk, d / 2);
   dimLines.geometry.dispose();
@@ -604,25 +605,20 @@ function buildDims() {
   dimLines.geometry = g;
   anchors.w.set(0, 0, zf); anchors.d.set(xr, 0, 0); anchors.h.set(xl, h / 2, d / 2);
   const f = v => (Math.round(v * 10) / 10).toLocaleString('en-US');
-  $('#lab-w').textContent = `W ${f(w)}`;
-  $('#lab-d').textContent = `D ${f(d)}`;
-  $('#lab-h').textContent = `H ${f(h)}`;
+  $('#lab-w').textContent = `W ${f(w)}`; $('#lab-d').textContent = `D ${f(d)}`; $('#lab-h').textContent = `H ${f(h)}`;
 }
 
 /* ---------- image processing ---------- */
 function setViewImage(key, img, name, raw) {
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-  const s = Math.min(1, 1400 / Math.max(iw, ih));
+  const s = Math.min(1, 2048 / Math.max(iw, ih));
   const c = document.createElement('canvas');
   c.width = Math.max(1, Math.round(iw * s)); c.height = Math.max(1, Math.round(ih * s));
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-  const old = state.views[key];
-  if (old && old.texture) old.texture.dispose();
   state.views[key] = { src: c, name: name || '', raw: !!raw };
   processView(key);
-  refreshTextures(); drawCell(key); scheduleBuild();
+  refreshCells(); drawCell(key); scheduleBuild();
 }
-
 function processView(key) {
   const v = state.views[key]; if (!v) return;
   const src = v.src, MW = 420;
@@ -697,14 +693,7 @@ function processView(key) {
     mask: empty ? null : { w: bw, h: bh, data: mask } });
 }
 
-function refreshTextures() {
-  const V = state.views;
-  uniforms.tF.value = V.front ? V.front.texture : blank;
-  uniforms.tT.value = V.top ? V.top.texture : blank;
-  uniforms.tL.value = V.left ? V.left.texture : blank;
-  uniforms.has.value.set(V.front ? 1 : 0, V.top ? 1 : 0, V.left ? 1 : 0);
-  for (const k of VIEWS) $('#cell-' + k).classList.toggle('has', !!V[k]);
-}
+function refreshCells() { for (const k of VIEWS) $('#cell-' + k).classList.toggle('has', !!state.views[k]); }
 
 /* ---------- sheet layout + thumbnails ---------- */
 function layoutSheet() {
@@ -735,7 +724,158 @@ function drawCell(key) {
   g.drawImage(v.overlay, x, y, dw, dh);
 }
 
-/* ---------- geometry ---------- */
+
+/* ---------- face textures: artwork + carton print details, baked per face ---------- */
+// face → [image, width axis (mm), height axis (mm), is the "other side" copy]
+function faceInfo(f) {
+  const { w, d, h } = state;
+  return [['left', d, h, true], ['left', d, h, false], ['top', w, d, false], ['top', w, d, true], ['front', w, h, false], ['front', w, h, true]][f];
+}
+function cartonDims() {
+  const { w, d, h } = state;
+  return {
+    seamX: w >= d,                                           // seam runs along the longer side
+    gap: Math.min(8, Math.max(3, Math.min(w, d) * 0.025)),
+    tapeW: Math.min(48, Math.min(w, d) * 0.6),               // standard 48 mm tape
+    drop: Math.min(60, h * 0.3),
+    pitch: Math.min(8, Math.max(2, Math.min(w, d, h) / 12))  // C-flute ≈ 8 mm
+  };
+}
+const faceTex = [];
+function buildFaceTextures() {
+  const box = state.mode === 'box', C = cartonDims();
+  for (let f = 0; f < 6; f++) {
+    const [key, mw, mh, other] = faceInfo(f);
+    const k = Math.min(8, 2048 / Math.max(mw, mh));
+    const cw = Math.max(2, Math.round(mw * k)), ch = Math.max(2, Math.round(mh * k));
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    g.fillStyle = box ? KRAFT : NEUTRAL; g.fillRect(0, 0, cw, ch);
+    const v = state.views[key];
+    if (v && (!other || state.mirror)) g.drawImage(v.crop, 0, 0, cw, ch);
+    if (box) {
+      const flap = f === 2 || f === 3;
+      // flutes: vertical in the walls, across the seam on the flaps
+      if (state.flute) {
+        const along = flap && !C.seamX ? 'y' : 'x', p = Math.max(2, C.pitch * k);
+        const tile = document.createElement('canvas');
+        tile.width = along === 'x' ? Math.round(p) : 1; tile.height = along === 'x' ? 1 : Math.round(p);
+        const tg = tile.getContext('2d'), gr = along === 'x' ? tg.createLinearGradient(0, 0, tile.width, 0) : tg.createLinearGradient(0, 0, 0, tile.height);
+        gr.addColorStop(0, 'rgba(0,0,0,0.07)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.03)'); gr.addColorStop(1, 'rgba(0,0,0,0.07)');
+        tg.fillStyle = gr; tg.fillRect(0, 0, tile.width, tile.height);
+        g.fillStyle = g.createPattern(tile, 'repeat'); g.fillRect(0, 0, cw, ch);
+      }
+      if (flap && state.seam) {
+        const gp = C.gap * k, bev = 1.6 * k, horiz = C.seamX;
+        const L = horiz ? cw : ch, mid = (horiz ? ch : cw) / 2;
+        g.save();
+        if (!horiz) { g.translate(cw, 0); g.rotate(Math.PI / 2); }   // draw as if horizontal
+        for (const sgn of [-1, 1]) {
+          const y0 = mid + sgn * gp / 2, gr = g.createLinearGradient(0, y0, 0, y0 + sgn * bev);
+          gr.addColorStop(0, 'rgba(0,0,0,0.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = gr; g.fillRect(0, Math.min(y0, y0 + sgn * bev), L, bev);
+        }
+        g.fillStyle = '#140d07'; g.fillRect(0, mid - gp / 2, L, gp);
+        if (state.flute) {   // the flap's cut edge: liner / fluting / liner
+          g.fillStyle = '#7a5530';
+          g.fillRect(0, mid - gp / 2, L, gp * 0.14); g.fillRect(0, mid + gp / 2 - gp * 0.14, L, gp * 0.14);
+          g.strokeStyle = '#7a5530'; g.lineWidth = Math.max(1, gp * 0.14); g.beginPath();
+          const pp = C.pitch * k;
+          for (let x = 0; x <= L; x += Math.max(1, pp / 12)) {
+            const y = mid - gp / 2 + gp * (0.5 + 0.3 * Math.sin(2 * Math.PI * x / pp));
+            x ? g.lineTo(x, y) : g.moveTo(x, y);
+          }
+          g.stroke();
+        }
+        g.restore();
+      }
+    }
+    if (faceTex[f]) faceTex[f].dispose();
+    const t = faceTex[f] = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    faceMats[f].map = t; faceMats[f].needsUpdate = true;
+  }
+}
+function faceUV(f, px, py, pz) {   // p in 0..1 across W, H, D
+  switch (f) {
+    case 0: return [1 - pz, py]; case 1: return [pz, py];
+    case 2: return [px, 1 - pz]; case 3: return [px, pz];
+    case 4: return [px, py]; default: return [1 - px, py];
+  }
+}
+
+/* ---------- carton geometry: rounded edges, slight bulge, real tape strips ---------- */
+function buildCarton() {
+  const { w, d, h } = state, half = [w / 2, h / 2, d / 2], size = [w, h, d];
+  const r = Math.min(state.radius, Math.min(w, d, h) * 0.45);
+  const C = cartonDims(), across = C.seamX ? 2 : 0;
+  const K = r > 0 ? 6 : 0, M = 12;
+  const bulge = state.bulge ? Math.min(w, d, h) * 0.006 : 0;
+  const tape = state.tape > 0;
+  const lists = [0, 1, 2].map(a => {
+    const H = half[a], ri = H - r, pts = [];
+    if (K) for (let i = 0; i <= K; i++) pts.push(-H + r * i / K, H - r * i / K); else pts.push(-H, H);
+    for (let i = 0; i <= M; i++) pts.push(-ri + 2 * ri * i / M);
+    if (tape && a === across) pts.push(-C.tapeW / 2, C.tapeW / 2);
+    if (tape && a === 1) pts.push(-(H - C.drop), H - C.drop);
+    return [...new Set(pts.map(v => Math.round(v * 1e4) / 1e4))].filter(v => v >= -H && v <= H).sort((p, q) => p - q);
+  });
+  const pos = [], nor = [], uv = [], idx = [], groups = [];
+  const tpos = [], tnor = [];
+  const th = Math.min(0.4, Math.min(w, d, h) * 0.004), eps = 1e-3;
+  const inTape = P => tape && Math.abs(P[across]) <= C.tapeW / 2 + eps && Math.abs(P[1]) >= half[1] - C.drop - eps;
+  const P = [0, 0, 0], inner = [0, 0, 0];
+  for (let a = 0; a < 3; a++) for (const s of [1, -1]) {
+    const f = a * 2 + (s > 0 ? 0 : 1), b = (a + 1) % 3, c = (a + 2) % 3;
+    const Lb = lists[b], Lc = lists[c], base = pos.length / 3, start = idx.length;
+    const vp = [], vn = [], vP = [];
+    for (let j = 0; j < Lc.length; j++) for (let i = 0; i < Lb.length; i++) {
+      P[a] = s * half[a]; P[b] = Lb[i]; P[c] = Lc[j];
+      for (let q = 0; q < 3; q++) inner[q] = Math.max(-half[q] + r, Math.min(half[q] - r, P[q]));
+      let n = [P[0] - inner[0], P[1] - inner[1], P[2] - inner[2]], len = Math.hypot(...n), p;
+      if (len > 1e-9) { n = n.map(x => x / len); p = [inner[0] + n[0] * r, inner[1] + n[1] * r, inner[2] + n[2] * r]; }
+      else {
+        n = [0, 0, 0]; n[a] = s; p = [P[0], P[1], P[2]];
+        const ib = half[b] - r, ic = half[c] - r;
+        if (bulge && ib > 0 && ic > 0) {
+          const u = P[b] / ib, v = P[c] / ic, fu = 1 - u * u, fv = 1 - v * v;
+          p[a] += s * bulge * fu * fv;
+          n[b] = 2 * bulge * u / ib * fv; n[c] = 2 * bulge * v / ic * fu;
+          const l = Math.hypot(...n); n = n.map(x => x / l);
+        }
+      }
+      pos.push(...p); nor.push(...n);
+      uv.push(...faceUV(f, P[0] / w + 0.5, P[1] / h + 0.5, P[2] / d + 0.5));
+      vp.push(p); vn.push(n); vP.push([P[0], P[1], P[2]]);
+    }
+    const nb = Lb.length, at = (i, j) => j * nb + i;
+    for (let j = 0; j < Lc.length - 1; j++) for (let i = 0; i < nb - 1; i++) {
+      const q = [at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1)];
+      const tri = s > 0 ? [q[0], q[1], q[2], q[0], q[2], q[3]] : [q[0], q[2], q[1], q[0], q[3], q[2]];
+      idx.push(...tri.map(x => x + base));
+      if (q.every(x => inTape(vP[x]))) for (const x of tri) {
+        const p = vp[x], n = vn[x];
+        tpos.push(p[0] + n[0] * th, p[1] + n[1] * th, p[2] + n[2] * th); tnor.push(...n);
+      }
+    }
+    groups.push([start, idx.length - start, f]);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  groups.forEach(([s0, n, f]) => geo.addGroup(s0, n, f));
+  const tgeo = new THREE.BufferGeometry();
+  if (tpos.length) {
+    tgeo.setAttribute('position', new THREE.Float32BufferAttribute(tpos, 3));
+    tgeo.setAttribute('normal', new THREE.Float32BufferAttribute(tnor, 3));
+    tgeo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(tpos.length / 3 * 2), 2));
+  }
+  return { geo, tgeo, tris: idx.length / 3 + tpos.length / 9, r };
+}
+
 function sampleMask(m, u, v) {
   if (!m) return 1;
   const x = Math.min(m.w - 1, Math.floor(u * m.w)), y = Math.min(m.h - 1, Math.floor(v * m.h));
@@ -792,6 +932,8 @@ function surfaceNets(f, X, Y, Z, iso) {
   return { pos, idx };
 }
 
+
+// hull: split surface-nets triangles by dominant normal so each takes one face's texture
 function buildHull() {
   const { w, d, h, res } = state, m = Math.max(w, d, h), k = res / m;
   const nx = Math.max(4, Math.round(w * k)), ny = Math.max(4, Math.round(h * k)), nz = Math.max(4, Math.round(d * k));
@@ -812,83 +954,120 @@ function buildHull() {
     pos[i + 1] = ((pos[i + 1] - 0.5) / ny - 0.5) * h;
     pos[i + 2] = ((pos[i + 2] - 0.5) / nz - 0.5) * d;
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
+  const tmp = new THREE.BufferGeometry();
+  tmp.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  tmp.setIndex(idx); tmp.computeVertexNormals();
+  const N = tmp.attributes.normal.array, buckets = [0, 1, 2, 3, 4, 5].map(() => ({ p: [], n: [], uv: [] }));
+  for (let t = 0; t < idx.length; t += 3) {
+    let sx = 0, sy = 0, sz = 0;
+    for (let q = 0; q < 3; q++) { const v = idx[t + q] * 3; sx += N[v]; sy += N[v + 1]; sz += N[v + 2]; }
+    const ax = Math.abs(sx), ay = Math.abs(sy), az = Math.abs(sz);
+    const f = ax >= ay && ax >= az ? (sx > 0 ? 0 : 1) : ay >= az ? (sy > 0 ? 2 : 3) : (sz > 0 ? 4 : 5);
+    const B = buckets[f];
+    for (let q = 0; q < 3; q++) {
+      const v = idx[t + q] * 3;
+      B.p.push(pos[v], pos[v + 1], pos[v + 2]); B.n.push(N[v], N[v + 1], N[v + 2]);
+      B.uv.push(...faceUV(f, pos[v] / w + 0.5, pos[v + 1] / h + 0.5, pos[v + 2] / d + 0.5));
+    }
+  }
+  const P = [], Nn = [], U = [], geo = new THREE.BufferGeometry();
+  buckets.forEach((B, f) => { geo.addGroup(P.length / 3, B.p.length / 3, f); P.push(...B.p); Nn.push(...B.n); U.push(...B.uv); });
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+  tmp.dispose();
   return { geo, info: `網格 <b>${nx}×${nz}×${ny}</b> · 體素 <b>${filled.toLocaleString()}</b>`, tris: idx.length / 3 };
 }
 
-// Box whose edges and corners are rounded with radius r: each face grid packs k rows into the
-// r-wide band at its borders, then every vertex is pushed onto the rounded surface.
-function roundedBox(w, h, d, r) {
-  const k = r > 0 ? 5 : 0, S = 2 * k + 1;
-  const geo = new THREE.BoxGeometry(2, 2, 2, S, S, S);
-  const half = [w / 2, h / 2, d / 2], pos = geo.attributes.position, nor = geo.attributes.normal;
-  const p = [0, 0, 0], inner = [0, 0, 0];
-  for (let i = 0; i < pos.count; i++) {
-    p[0] = pos.getX(i); p[1] = pos.getY(i); p[2] = pos.getZ(i);
-    for (let a = 0; a < 3; a++) {
-      const j = Math.round((p[a] + 1) / 2 * S), H = half[a];
-      p[a] = k === 0 ? (j ? H : -H)
-        : j <= k ? -H + r * (j / k)
-        : j >= k + 1 ? H - r * ((S - j) / k)
-        : 0;
-      inner[a] = Math.max(-H + r, Math.min(H - r, p[a]));
-    }
-    let nx = p[0] - inner[0], ny = p[1] - inner[1], nz = p[2] - inner[2];
-    const len = Math.hypot(nx, ny, nz);
-    if (len > 1e-9) {
-      nx /= len; ny /= len; nz /= len;
-      pos.setXYZ(i, inner[0] + nx * r, inner[1] + ny * r, inner[2] + nz * r);
-      nor.setXYZ(i, nx, ny, nz);
-    } else pos.setXYZ(i, p[0], p[1], p[2]);
-  }
-  return geo;
-}
-
+/* ---------- build ---------- */
 let buildTimer = 0;
 function scheduleBuild() { clearTimeout(buildTimer); buildTimer = setTimeout(build, 40); }
 function build() {
-  const t0 = performance.now();
-  const { w, d, h } = state;
-  let geo, info, tris;
-  const U = uniforms;
-  U.cOn.value = state.mode === 'box' ? 1 : 0;
-  U.cSeam.value = state.seam ? 1 : 0; U.cFlute.value = state.flute ? 1 : 0; U.cTape.value = state.tape;
-  U.cSeamX.value = w >= d ? 1 : 0;                                     // seam runs along the longer side
-  U.cGap.value = Math.min(8, Math.max(3, Math.min(w, d) * 0.025));
-  U.cTapeW.value = Math.min(48, Math.min(w, d) * 0.6);                 // standard 48 mm tape
-  U.cDrop.value = Math.min(60, h * 0.3);
-  U.cPitch.value = Math.min(8, Math.max(2, Math.min(w, d, h) / 12));    // C-flute ≈ 8 mm
-  U.cHalf.value.set(w / 2, h / 2, d / 2);
+  stopHQ();
+  const t0 = performance.now(), { w, d, h } = state;
+  buildFaceTextures();
+  let geo, tgeo = new THREE.BufferGeometry(), info, tris;
   if (state.mode === 'box') {
-    const r = Math.min(state.radius, Math.min(w, d, h) * 0.45);
-    geo = roundedBox(w, h, d, r); tris = geo.index.count / 3;
-    info = `紙箱 · 圓角 <b>${+r.toFixed(1)} mm</b>` + (state.tape ? ` · 膠帶 <b>${+uniforms.cTapeW.value.toFixed(0)} mm</b>` : '');
-  }
-  else ({ geo, info, tris } = buildHull());
-  mesh.geometry.dispose(); mesh.geometry = geo;
-  mesh.position.y = h / 2;
-  uniforms.size.value.set(w, h, d);
-  uniforms.mirror.value = state.mirror ? 1 : 0;
-  shadow.scale.set(w * 1.7, d * 1.7, 1);
-  shadow.position.y = 0.01 * Math.max(w, d, h);
-  buildDims(); updateLights();
-  dimLines.visible = state.showDims; $('#labels').hidden = !state.showDims;
+    const c = buildCarton(); geo = c.geo; tgeo = c.tgeo; tris = c.tris;
+    info = `紙箱 · 圓角 <b>${+c.r.toFixed(1)} mm</b>` + (state.tape ? ` · 膠帶 <b>${+cartonDims().tapeW.toFixed(0)} mm</b>` : '');
+  } else ({ geo, info, tris } = buildHull());
+  splitGroups(geo).forEach((g, i) => { faceMeshes[i].geometry.dispose(); faceMeshes[i].geometry = g; });
+  tapeMesh.geometry.dispose(); tapeMesh.geometry = tgeo;
+  product.position.y = h / 2;
+  buildSweep(); buildDims(); updateMaterials(); updateLights(); updateBackground();
   const ms = Math.round(performance.now() - t0);
   const n = VIEWS.filter(k => state.views[k]).length;
-  $('#hud').innerHTML = `${state.mode === 'box' ? '紙箱模擬' : '輪廓雕刻'} · 視圖 <b>${n}/3</b> · ${LIGHTS[state.light].name}<br>${info} · 三角面 <b>${tris.toLocaleString()}</b><br>格線 <b>${gridStep} mm</b> · 生成 <b>${ms} ms</b>`;
+  $('#hud').innerHTML = `${state.mode === 'box' ? '紙箱模擬' : '輪廓雕刻'} · 視圖 <b>${n}/3</b> · ${LIGHTS[state.light].name}<br>${info} · 三角面 <b>${Math.round(tris).toLocaleString()}</b><br>格線 <b>${gridStep} mm</b> · 生成 <b>${ms} ms</b>`;
+}
+
+function updateMaterials() {
+  const g = state.gloss / 100;
+  for (const m of faceMats) { m.roughness = 0.82 - 0.5 * g; m.clearcoat = 0.1 + 0.5 * g; m.clearcoatRoughness = 0.45 - 0.25 * g; }
+  if (state.tape === 1) Object.assign(tapeMat, { color: new THREE.Color('#9C6A3A'), roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.2, specularIntensity: 1, transparent: false, opacity: 1 });
+  else Object.assign(tapeMat, { color: new THREE.Color('#FFFFFF'), roughness: 0.12, clearcoat: 0, specularIntensity: 0.5, transparent: true, opacity: 0.07 });
+  tapeMat.needsUpdate = true;
+  tapeMesh.visible = state.mode === 'box' && state.tape > 0;
+}
+
+let envTex = null;
+function updateLights() {
+  stopHQ();
+  if (envTex) envTex.dispose();
+  envTex = makeEnv(state.light, state.az, state.el);
+  scene.environment = envTex;
+  const { w, d, h } = state, m = Math.max(w, d, h), target = new THREE.Vector3(0, h / 2, 0);
+  sun.visible = state.light === 'daylight';
+  sun.castShadow = sun.visible && state.shadows;
+  sun.position.copy(target).addScaledVector(dirOf(rad(state.az), rad(state.el)), m * 4);
+  sun.target.position.copy(target);
+  const cam = sun.shadow.camera, r = 0.5 * Math.hypot(w, d, h) * 1.8;
+  cam.left = cam.bottom = -r; cam.right = cam.top = r; cam.near = m; cam.far = m * 8; cam.updateProjectionMatrix();
+  sun.shadow.normalBias = m * 0.002;
+  renderer.toneMappingExposure = state.exposure;
+  contact.plane.visible = state.shadows;
+  catcher.visible = sun.castShadow && state.bg !== 'studio';
+  catcher.scale.set(m * 8, 1, m * 8);
+  contact.update();
+}
+
+/* ---------- background ---------- */
+function updateBackground() {
+  const mode = state.bg;
+  $('#bg-color-row').hidden = mode !== 'studio';
+  $('#bg-image-row').hidden = mode !== 'image';
+  $('#l-vig').hidden = mode !== 'studio';
+  sweep.visible = mode === 'studio';
+  sweepMat.color.set(state.bgColor).multiplyScalar(0.8);   // lit by the soft boxes it reads close to the picked colour
+  catcher.visible = sun.castShadow && mode !== 'studio';
+  if (mode === 'studio') {
+    scene.background = new THREE.Color(state.bgColor).multiplyScalar(0.55);
+    stage.style.background = state.bgColor;
+    stage.dataset.tone = hexLum(state.bgColor) > 0.3 ? 'light' : 'dark';
+  } else if (mode === 'image' && state.bgImage) {
+    scene.background = null;
+    stage.style.background = `center / cover no-repeat url("${state.bgImage}")`;
+    stage.dataset.tone = state.bgImageTone;
+  } else {
+    scene.background = null; stage.style.background = ''; delete stage.dataset.tone;
+  }
+  $('#vignette').hidden = !(mode === 'studio' && state.vignette);
+  $('#bg-picker').value = state.bgColor;
+  document.querySelectorAll('.sw').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.color.toLowerCase() === state.bgColor.toLowerCase())));
+  applyTheme();
 }
 
 /* ---------- camera ---------- */
+const CAMS = {
+  product: { dir: [-0.95, 0.52, 1.3], fov: 20 }, iso: { dir: [-1.1, 0.8, 1.35], fov: 26 },
+  front: { dir: [0, 0.0001, 1], fov: 26 }, top: { dir: [0, 1, 0.0001], fov: 26 }, left: { dir: [-1, 0.0001, 0], fov: 26 }
+};
 function setView(kind) {
-  const { w, d, h } = state;
-  const r = 0.5 * Math.hypot(w, d, h) * 1.45;
-  const dist = r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.aspect < 1 ? 1 / Math.max(camera.aspect, 0.5) : 1);
-  const dirs = { iso: [1.1, 0.8, 1.35], front: [0, 0.0001, 1], top: [0, 1, 0.0001], left: [-1, 0.0001, 0] };
-  const dir = new THREE.Vector3(...dirs[kind]).normalize();
-  const target = new THREE.Vector3(0, h / 2, 0);
+  stopHQ();
+  const { w, d, h } = state, C = CAMS[kind];
+  camera.fov = C.fov; camera.updateProjectionMatrix();
+  const r = 0.5 * Math.hypot(w, d, h) * (kind === 'product' ? 1.25 : 1.45);
+  const dist = r / Math.sin(rad(camera.fov / 2)) * (camera.aspect < 1 ? 1 / Math.max(camera.aspect, 0.5) : 1);
+  const dir = new THREE.Vector3(...C.dir).normalize(), target = new THREE.Vector3(0, h * (kind === 'product' ? 0.42 : 0.5), 0);
   camera.position.copy(target).addScaledVector(dir, dist);
   controls.target.copy(target);
   controls.minDistance = r * 0.3; controls.maxDistance = dist * 6;
@@ -896,15 +1075,18 @@ function setView(kind) {
 }
 document.querySelectorAll('[data-cam]').forEach(b => b.addEventListener('click', () => setView(b.dataset.cam)));
 $('#spin').addEventListener('click', e => {
+  stopHQ();
   controls.autoRotate = !controls.autoRotate;
   e.currentTarget.setAttribute('aria-pressed', String(controls.autoRotate));
 });
+controls.addEventListener('start', () => stopHQ());
 
 function resize() {
   const w = stage.clientWidth, h = stage.clientHeight;
   if (!w || !h) return;
   renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (hq) pt.reset();
 }
 new ResizeObserver(resize).observe(stage);
 new ResizeObserver(() => VIEWS.forEach(drawCell)).observe($('#sheet'));
@@ -921,34 +1103,133 @@ function placeLabels() {
     el.style.transform = `translate(${(tmpV.x * .5 + .5) * cw}px,${(-tmpV.y * .5 + .5) * ch}px) translate(-50%,-50%)`;
   }
 }
-(function loop() {
-  requestAnimationFrame(loop);
-  controls.update();
+
+/* ---------- high quality render (GPU path tracing) ---------- */
+let pt = null, hq = false, ptScene = null;
+const HQ_SAMPLES = 600;
+function renderUnder() {   // ground shadow only, for see-through backgrounds
+  const bg = scene.background; scene.background = null;
+  camera.layers.set(2);
+  renderer.setRenderTarget(null); renderer.render(scene, camera);
+  camera.layers.enableAll(); scene.background = bg;
+}
+function rasterFrame() {
+  renderer.setRenderTarget(null);
   renderer.render(scene, camera);
+  renderer.autoClear = false; renderer.render(overlay, camera); renderer.autoClear = true;
+}
+async function startHQ() {
+  const btn = $('#hq');
+  if (!pt) {
+    btn.disabled = true; btn.textContent = '載入渲染器…';
+    try {
+      const { WebGLPathTracer } = await import('three-gpu-pathtracer');
+      pt = new WebGLPathTracer(renderer);
+      pt.tiles.set(2, 2); pt.minSamples = 2; pt.fadeDuration = 0; pt.renderDelay = 0;
+      pt.bounces = 6; pt.filterGlossyFactor = 0.5; pt.textureSize.set(2048, 2048);
+      pt.rasterizeSceneCallback = () => rasterFrame();
+      pt.renderToCanvasCallback = (target, r, quad) => {
+        r.autoClear = false;
+        quad.render(r);
+        r.render(overlay, camera);
+        r.autoClear = true;
+      };
+    } catch (e) {
+      console.error(e);
+      status('無法載入高品質渲染器，請確認網路連線後再試一次。', true);
+      btn.disabled = false; btn.textContent = '高品質渲染'; return;
+    } finally { btn.disabled = false; btn.textContent = '高品質渲染'; }
+  }
+  controls.autoRotate = false; $('#spin').setAttribute('aria-pressed', 'false');
+  controls.update();
+  pt.renderScale = Math.min(1, 1.5 / renderer.getPixelRatio());
+  ptScene = new THREE.Scene();
+  ptScene.environment = envTex;
+  ptScene.background = state.bg === 'studio' ? scene.background.clone() : null;
+  const p = product.clone(); [...p.children].forEach(c => { if (!c.visible || !c.geometry.attributes.position?.count) p.remove(c); });
+  ptScene.add(p);
+  if (state.bg === 'studio') ptScene.add(sweep.clone());
+  if (sun.visible) { const s = sun.clone(); s.target = s.target.clone(); ptScene.add(s, s.target); }
+  // see-through backgrounds: freeze the soft ground shadow into a canvas under the path-traced frame
+  const under = $('#under');
+  under.hidden = state.bg === 'studio';
+  if (!under.hidden) {
+    renderUnder();
+    under.width = canvas.width; under.height = canvas.height;
+    const ug = under.getContext('2d'); ug.clearRect(0, 0, under.width, under.height); ug.drawImage(canvas, 0, 0);
+  }
+  pt.setScene(ptScene, camera);
+  hq = true;
+  $('#hqbar').hidden = false; btn.setAttribute('aria-pressed', 'true');
+  $('#hq-save').hidden = !canDownload;
+}
+function stopHQ() {
+  if (!hq) return;
+  hq = false; ptScene = null; $('#under').hidden = true;
+  $('#hqbar').hidden = true; $('#hq').setAttribute('aria-pressed', 'false');
+}
+$('#hq').addEventListener('click', () => hq ? stopHQ() : startHQ());
+$('#hq-stop').addEventListener('click', stopHQ);
+
+// saving files works on the GitHub Pages site, not inside the claude.ai viewer
+const canDownload = !/claude\.ai|claudeusercontent|anthropic/.test(location.hostname) && location.protocol !== 'file:';
+$('#hq-save').addEventListener('click', () => {
+  const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+  const g = c.getContext('2d');
+  const finish = () => {
+    if (!$('#under').hidden) g.drawImage($('#under'), 0, 0);
+    g.drawImage(canvas, 0, 0);
+    if (state.bg === 'studio' && state.vignette) {
+      const gr = g.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * 0.35, c.width / 2, c.height / 2, Math.hypot(c.width, c.height) / 2);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.32)');
+      g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+    }
+    c.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'mockup.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }, 'image/png');
+  };
+  if (state.bg === 'image' && state.bgImage) {
+    const im = new Image(); im.onload = () => {
+      const s = Math.max(c.width / im.width, c.height / im.height);
+      g.drawImage(im, (c.width - im.width * s) / 2, (c.height - im.height * s) / 2, im.width * s, im.height * s); finish();
+    }; im.src = state.bgImage;
+  } else {
+    if (state.bg === 'theme') { g.fillStyle = getComputedStyle(stage).backgroundColor; g.fillRect(0, 0, c.width, c.height); }
+    finish();
+  }
+});
+
+let lastSweepYaw = null;
+renderer.setAnimationLoop(() => {
+  controls.update();
+  // the backdrop turns with the camera, like a photographer's sweep
+  const yaw = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
+  if (!hq && yaw !== lastSweepYaw) { sweep.rotation.y = yaw; lastSweepYaw = yaw; }
+  if (hq) {
+    if (pt.samples < HQ_SAMPLES) pt.renderSample();
+    const n = Math.min(HQ_SAMPLES, Math.floor(pt.samples));
+    $('#hq-count').textContent = ` 取樣 ${n} / ${HQ_SAMPLES}`;
+    $('#hq-fill').style.width = `${n / HQ_SAMPLES * 100}%`;
+    $('#hq-title').textContent = n >= HQ_SAMPLES ? '高品質渲染完成' : '高品質渲染中';
+  } else rasterFrame();
   placeLabels();
-})();
+});
 
 /* ---------- UI wiring ---------- */
-const status = (msg, err) => { const s = $('#status'); s.textContent = msg; s.classList.toggle('err', !!err); };
-
 function loadFile(key, file) {
   if (!file || !/^image\//.test(file.type)) { status(`「${file ? file.name : ''}」不是圖片檔，請改用 PNG、JPG 或 WebP。`, true); return; }
   const url = URL.createObjectURL(file), img = new Image();
   img.onload = () => {
     setViewImage(key, img, file.name); URL.revokeObjectURL(url);
     const v = state.views[key];
-    status(`已載入${NAMES[key]}：${file.name}` + (v.empty ? '（找不到明確背景，整張圖視為物件）' : v.method === 'alpha' ? '（使用透明背景）' : ''));
+    status(`已載入${NAMES[key]}：${file.name}` + (v.empty ? '（整張圖視為圖案）' : v.method === 'alpha' ? '（使用透明背景）' : ''));
   };
   img.onerror = () => { URL.revokeObjectURL(url); status(`無法讀取「${file.name}」，檔案可能已損壞。`, true); };
   img.src = url;
 }
-
 VIEWS.forEach(key => {
   const cell = $('#cell-' + key), input = $('#file-' + key);
   input.addEventListener('change', () => { loadFile(key, input.files[0]); input.value = ''; });
   cell.querySelector('.rm').addEventListener('click', () => {
-    const v = state.views[key]; if (v && v.texture) v.texture.dispose();
-    state.views[key] = null; refreshTextures(); drawCell(key); scheduleBuild(); status(`已移除${NAMES[key]}`);
+    state.views[key] = null; refreshCells(); drawCell(key); scheduleBuild(); status(`已移除${NAMES[key]}`);
   });
   cell.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); cell.classList.add('over'); });
   cell.addEventListener('dragleave', () => cell.classList.remove('over'));
@@ -957,8 +1238,6 @@ VIEWS.forEach(key => {
     loadFile(key, e.dataTransfer.files[0]);
   });
 });
-
-// drop multiple files onto the stage, matched by filename
 const guess = n => {
   n = n.toLowerCase();
   if (/top|plan|上/.test(n)) return 'top';
@@ -974,7 +1253,7 @@ document.addEventListener('drop', e => {
   e.preventDefault(); dragDepth = 0; $('#drop-all').hidden = true;
   const files = [...e.dataTransfer.files].filter(f => /^image\//.test(f.type));
   if (!files.length) return;
-  const free = VIEWS.slice(); const plan = [];
+  const free = VIEWS.slice(), plan = [];
   files.forEach(f => { const k = guess(f.name); if (k && free.includes(k)) { plan.push([k, f]); free.splice(free.indexOf(k), 1); } });
   files.filter(f => !plan.some(p => p[1] === f)).forEach(f => { if (free.length) plan.push([free.shift(), f]); });
   plan.forEach(([k, f]) => loadFile(k, f));
@@ -989,7 +1268,6 @@ function bindDim(id, key) {
 }
 bindDim('#dim-w', 'w'); bindDim('#dim-d', 'd'); bindDim('#dim-h', 'h');
 const syncDims = () => { $('#dim-w').value = state.w; $('#dim-d').value = state.d; $('#dim-h').value = state.h; layoutSheet(); };
-
 $('#infer').addEventListener('click', () => {
   const V = state.views, r = x => Math.round(x * 10) / 10;
   if (!V.front && !V.top && !V.left) { status('請先放入至少一張視圖。', true); return; }
@@ -1002,68 +1280,59 @@ $('#infer').addEventListener('click', () => {
 });
 
 document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => {
-  state.mode = r.value; $('#f-res').setAttribute('aria-disabled', String(state.mode === 'box'));
-  $('#res').disabled = state.mode === 'box'; $('#chk-smooth').disabled = state.mode === 'box';
-  $('#f-res').hidden = state.mode === 'box'; $('#f-radius').hidden = state.mode !== 'box';
-  $('#f-carton').hidden = state.mode !== 'box';
-  applyTheme();
+  state.mode = r.value;
+  const box = state.mode === 'box';
+  $('#f-res').hidden = box; $('#l-smooth').hidden = box;
+  $('#f-radius').hidden = !box; $('#f-carton').hidden = !box;
   scheduleBuild();
 }));
-const res = $('#res'), tol = $('#tol');
-res.value = state.res; tol.value = state.tol;
-$('#res-out').textContent = state.res; $('#tol-out').textContent = state.tol;
-res.addEventListener('input', () => { state.res = +res.value; $('#res-out').textContent = res.value; scheduleBuild(); });
-const radius = $('#radius');
-radius.value = state.radius; $('#radius-out').textContent = `${state.radius} mm`;
-radius.addEventListener('input', () => { state.radius = +radius.value; $('#radius-out').textContent = `${state.radius} mm`; scheduleBuild(); });
-for (const [id, k] of [['#chk-seam', 'seam'], ['#chk-flute', 'flute']]) {
-  const el = $(id); el.checked = state[k];
-  el.addEventListener('change', () => { state[k] = el.checked; build(); });
-}
-document.querySelectorAll('input[name=tape]').forEach(r => r.addEventListener('change', () => { state.tape = +r.value; build(); }));
+const slider = (id, key, fmt, after) => {
+  const el = $(id), out = $(id + '-out');
+  const show = () => { out.textContent = fmt(state[key]); };
+  el.value = state[key]; show();
+  el.addEventListener('input', () => { state[key] = +el.value; show(); after(); });
+  return () => { el.value = state[key]; show(); };
+};
+slider('#res', 'res', v => v, scheduleBuild);
+slider('#radius', 'radius', v => `${v} mm`, scheduleBuild);
 let tolTimer = 0;
-tol.addEventListener('input', () => {
-  state.tol = +tol.value; $('#tol-out').textContent = tol.value;
+slider('#tol', 'tol', v => v, () => {
   clearTimeout(tolTimer);
-  tolTimer = setTimeout(() => { VIEWS.forEach(processView); refreshTextures(); VIEWS.forEach(drawCell); scheduleBuild(); }, 60);
+  tolTimer = setTimeout(() => { VIEWS.forEach(processView); VIEWS.forEach(drawCell); scheduleBuild(); }, 60);
 });
-const chk = (id, key, reprocess) => {
+const check = (id, key, after) => {
   const el = $(id); el.checked = state[key];
-  el.addEventListener('change', () => {
-    state[key] = el.checked;
-    if (reprocess) { VIEWS.forEach(processView); refreshTextures(); VIEWS.forEach(drawCell); }
-    scheduleBuild();
-  });
+  el.addEventListener('change', () => { state[key] = el.checked; after(); });
+  return el;
 };
-chk('#chk-smooth', 'smooth'); chk('#chk-crop', 'autocrop', true); chk('#chk-mirror', 'mirror');
+check('#chk-smooth', 'smooth', scheduleBuild);
+check('#chk-crop', 'autocrop', () => { VIEWS.forEach(processView); VIEWS.forEach(drawCell); scheduleBuild(); });
+check('#chk-mirror', 'mirror', scheduleBuild);
+check('#chk-seam', 'seam', scheduleBuild);
+check('#chk-flute', 'flute', scheduleBuild);
+check('#chk-bulge', 'bulge', scheduleBuild);
+document.querySelectorAll('input[name=tape]').forEach(r => r.addEventListener('change', () => { state.tape = +r.value; scheduleBuild(); }));
 
-/* ---------- lighting + background controls ---------- */
-const syncLightInputs = () => {
-  $('#az').value = state.az; $('#az-out').textContent = `${state.az}°`;
-  $('#el').value = state.el; $('#el-out').textContent = `${state.el}°`;
-  $('#exp').value = state.exposure; $('#exp-out').textContent = `${(+state.exposure).toFixed(2)}×`;
-  $('#gloss').value = state.gloss; $('#gloss-out').textContent = state.gloss < 25 ? `霧面 ${state.gloss}` : state.gloss < 65 ? `半光 ${state.gloss}` : `亮面 ${state.gloss}`;
-};
+// lighting
+const syncAz = slider('#az', 'az', v => `${v}°`, updateLights);
+const syncEl = slider('#el', 'el', v => `${v}°`, updateLights);
+slider('#exp', 'exposure', v => `${(+v).toFixed(2)}×`, () => { stopHQ(); renderer.toneMappingExposure = state.exposure; });
+slider('#gloss', 'gloss', v => v < 25 ? `霧面 ${v}` : v < 65 ? `半光 ${v}` : `亮面 ${v}`, () => { stopHQ(); updateMaterials(); });
 document.querySelectorAll('input[name=light]').forEach(r => r.addEventListener('change', () => {
   state.light = r.value; state.az = LIGHTS[r.value].az; state.el = LIGHTS[r.value].el;
-  syncLightInputs(); updateLights(); build();
+  syncAz(); syncEl(); build();
 }));
-[['#az', 'az'], ['#el', 'el'], ['#exp', 'exposure'], ['#gloss', 'gloss']].forEach(([id, k]) => {
-  $(id).addEventListener('input', e => { state[k] = +e.target.value; syncLightInputs(); updateLights(); });
-});
-{ const el = $('#chk-shadow'); el.checked = state.shadows;
-  el.addEventListener('change', () => { state.shadows = el.checked; updateLights(); }); }
+check('#chk-shadow', 'shadows', updateLights);
 
+// background
 document.querySelectorAll('input[name=bg]').forEach(r => r.addEventListener('change', () => {
+  stopHQ();
   state.bg = r.value;
-  if (r.value === 'image') {
-    if (state.showGrid) { state.showGrid = false; $('#chk-grid').checked = false; }
-    if (!state.bgImage) $('#bg-file').click();
-  }
-  applyBackground();
+  if (r.value === 'image' && !state.bgImage) $('#bg-file').click();
+  updateLights(); updateBackground();
 }));
-$('#bg-picker').addEventListener('input', e => { state.bgColor = e.target.value; applyBackground(); });
-document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => { state.bgColor = b.dataset.color; applyBackground(); }));
+$('#bg-picker').addEventListener('input', e => { stopHQ(); state.bgColor = e.target.value; updateBackground(); });
+document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => { stopHQ(); state.bgColor = b.dataset.color; updateBackground(); }));
 $('#bg-file').addEventListener('change', e => {
   const file = e.target.files[0]; e.target.value = '';
   if (!file) return;
@@ -1084,16 +1353,15 @@ $('#bg-file').addEventListener('change', e => {
     $('#bg-thumb').style.backgroundImage = `url("${state.bgImage}")`;
     $('#bg-name').textContent = file.name;
     state.bg = 'image'; $('#bg-image').checked = true;
-    applyBackground(); status(`已套用背景圖片：${file.name}`);
+    stopHQ(); updateLights(); updateBackground(); status(`已套用背景圖片：${file.name}`);
   };
   img.onerror = () => { URL.revokeObjectURL(url); status(`無法讀取「${file.name}」，檔案可能已損壞。`, true); };
   img.src = url;
 });
-{ const g = $('#chk-grid'); g.checked = state.showGrid;
-  g.addEventListener('change', () => { state.showGrid = g.checked; if (grid) grid.visible = g.checked; }); }
-{ const d = $('#chk-dims'); d.checked = state.showDims;
-  d.addEventListener('change', () => { state.showDims = d.checked; dimLines.visible = d.checked; $('#labels').hidden = !d.checked; }); }
-syncLightInputs();
+check('#chk-vig', 'vignette', updateBackground);
+check('#chk-grid', 'showGrid', () => { if (grid) grid.visible = state.showGrid; });
+check('#chk-dims', 'showDims', () => { dimLines.visible = state.showDims; $('#labels').hidden = !state.showDims; });
+
 
 /* ---------- procedural sample drawings ---------- */
 function drawing(wmm, hmm, fn) {
@@ -1171,14 +1439,14 @@ function speakerSide(g) {
 function loadSample(name) {
   if (name === 'clear') {
     VIEWS.forEach(k => { const v = state.views[k]; if (v && v.texture) v.texture.dispose(); state.views[k] = null; });
-    refreshTextures(); VIEWS.forEach(drawCell); scheduleBuild(); status('已清空三個視圖，放入你的圖片開始。'); return;
+    refreshCells(); VIEWS.forEach(drawCell); scheduleBuild(); status('已清空三個視圖，放入你的圖片開始。'); return;
   }
   const s = SAMPLES[name];
   [state.w, state.d, state.h] = s.dims;
   syncDims();
   const m = $('#mode-' + (s.mode || 'hull'));
   if (!m.checked) { m.checked = true; m.dispatchEvent(new Event('change')); }
-  const done = () => { build(); setView('iso'); status(`範例：${s.label}（${s.dims[0]} × ${s.dims[1]} × ${s.dims[2]} mm）`); };
+  const done = () => { build(); setView('product'); status(`範例：${s.label}（${s.dims[0]} × ${s.dims[1]} × ${s.dims[2]} mm）`); };
   if (!s.files) { VIEWS.forEach(k => setViewImage(k, s[k](), `sample-${k}`)); done(); return; }
   Promise.all(VIEWS.map(k => new Promise((ok, fail) => {
     const img = new Image();
@@ -1189,11 +1457,11 @@ function loadSample(name) {
 }
 document.querySelectorAll('[data-sample]').forEach(b => b.addEventListener('click', () => loadSample(b.dataset.sample)));
 
+
 /* ---------- boot ---------- */
-resize(); applyBackground();
+resize();
 document.querySelector('input[name=mode]:checked').dispatchEvent(new Event('change'));
 loadSample('chili');
-})();
 </script>
 </body>
 </html>
